@@ -3,20 +3,13 @@ package com.employeemanagement.employee.model;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDate;
-
 @Getter
 @Setter
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Employee {
+public class Department {
 	Integer id;
 	String name;
-	LocalDate dob;
-	Gender gender;
-	Double salary;
-	String phone;
-	Integer departmentId;
 }
