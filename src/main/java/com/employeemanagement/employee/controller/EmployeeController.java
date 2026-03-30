@@ -7,6 +7,7 @@ import com.employeemanagement.employee.exception.ErrorCode;
 import com.employeemanagement.employee.model.Employee;
 import com.employeemanagement.employee.model.Gender;
 import com.employeemanagement.employee.util.JsonResponse;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/employees")
@@ -32,8 +35,36 @@ public class EmployeeController {
 
 
 	@GetMapping
-	public ResponseEntity<ApiResponse<List<Employee>>> getAll() {
-		return JsonResponse.ok(employees);
+	public ResponseEntity<ApiResponse<List<Employee>>> getAll(
+			@RequestParam(value = "name", required = false) String name,
+			@RequestParam(value = "dobFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dobFrom,
+			@RequestParam(value = "dobTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dobTo,
+			@RequestParam(value = "gender", required = false) Gender gender,
+			@RequestParam(value = "salaryRange", required = false) String salaryRange,
+			@RequestParam(value = "phone", required = false) String phone,
+			@RequestParam(value = "derpartmentId", required = false) String departmentId
+	) {
+		List<Employee> filteredEmployees = employees.stream()
+				.filter(e -> (name == null || e.getName().toLowerCase().contains(name.toLowerCase())))
+				.filter(e -> (dobFrom == null || !e.getDob().isBefore(dobFrom)))
+				.filter(e -> (dobTo == null || !e.getDob().isAfter(dobTo)))
+				.filter(e -> (gender == null || e.getGender() == gender))
+				.filter(e -> (phone == null || e.getPhone().contains((phone))))
+				.filter(e -> (departmentId == null || Objects.equals(e.getDepartmentId(), departmentId)))
+				.filter(e -> {
+					if(salaryRange == null){
+						return true;
+					}
+					return switch (salaryRange){
+						case "lt5" -> e.getSalary() < 5000000;
+						case "5-10" -> e.getSalary() >= 5000000 && e.getSalary() < 10000000;
+						case "10-20" -> e.getSalary() >= 10000000 && e.getSalary() <= 20000000;
+						case "gt5" -> e.getSalary() > 20000000;
+						default -> false;
+					};
+				})
+				.collect(Collectors.toList());
+		return JsonResponse.ok(filteredEmployees);
 	}
 
 	@GetMapping("/{id}")

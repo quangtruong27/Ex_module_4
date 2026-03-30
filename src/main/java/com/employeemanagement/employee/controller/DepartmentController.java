@@ -47,7 +47,7 @@ public class DepartmentController {
 		return JsonResponse.create(department);
 	}
 
-	@PutMapping("{/id}")
+	@PutMapping("/{id}")
 	public ResponseEntity<ApiResponse<Department>> updateDepartment(@PathVariable Integer id, @RequestBody Department updateDepartment) {
 		for (Department department : departments){
 			if(department.getId().equals(id)){
@@ -59,7 +59,7 @@ public class DepartmentController {
 		throw new AppException(ErrorCode.DEPARTMENT_NOT_EXISTED);
 	}
 
-	@DeleteMapping("{/id}")
+	@DeleteMapping("/{id}")
 	public ResponseEntity<ApiResponse<String>> deleteDepartment(@PathVariable Integer id) {
 		for (Department department : departments){
 			if(department.getId() == id){
