@@ -1,6 +1,7 @@
 package com.employeemanagement.employee.service.impl;
 
 import com.employeemanagement.employee.model.Department;
+import com.employeemanagement.employee.repository.IDepartmentRepository;
 import com.employeemanagement.employee.service.IDepartmentService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -13,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class DepartmentService implements IDepartmentService {
-	IDepartmentService departmentRepository;
+	IDepartmentRepository departmentRepository;
 
 	public List<Department> findAllDepartments() {
 		return departmentRepository.findAllDepartments();
