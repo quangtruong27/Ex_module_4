@@ -1,0 +1,13 @@
+package com.employeemanagement.employee.service;
+
+import com.employeemanagement.employee.model.Department;
+
+import java.util.List;
+
+public interface IDepartmentService {
+	List<Department> findAllDepartments();
+	Department findDepartmentById(Integer id);
+	Department createDepartment(Department department);
+	Department updateDepartment(Integer id, Department updateDepartment);
+	Department deleteDepartment(Integer id);
+}
