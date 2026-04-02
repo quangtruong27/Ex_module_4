@@ -1,6 +1,8 @@
 package com.employeemanagement.employee.repository.impl;
 
 import com.employeemanagement.employee.dto.employee.EmployeeSearchRequest;
+import com.employeemanagement.employee.exception.AppException;
+import com.employeemanagement.employee.exception.ErrorCode;
 import com.employeemanagement.employee.model.Employee;
 import com.employeemanagement.employee.model.Gender;
 import com.employeemanagement.employee.repository.IEmployeeRepository;
@@ -17,15 +19,6 @@ import java.util.*;
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class EmployeeRepository implements IEmployeeRepository {
-	final List<Employee> employees = new ArrayList<>(
-			Arrays.asList(
-					new Employee(1, "Hoàng Văn Hải", LocalDate.of(1990, 1, 15), Gender.MALE, 15000000.00, "0975123542", 1),
-					new Employee(2, "Trần Thị Hoài", LocalDate.of(1985, 5, 20), Gender.FEMALE, 14500000.00, "0967869868", 2),
-					new Employee(3, "Lê Văn Sỹ", LocalDate.of(1992, 3, 10), Gender.MALE, 15500000.00, "0988881110", 3),
-					new Employee(4, "Phạm Duy Khánh", LocalDate.of(1988, 7, 5), Gender.FEMALE, 14800000.00, "0986555333", 4),
-					new Employee(5, "Hoàng Văn Quý", LocalDate.of(1995, 9, 25), Gender.MALE, 15200000.00, "0973388668", 5)
-			)
-	);
 
 	@Override
 	public List<Employee> findAll(EmployeeSearchRequest employeeSearchRequest) {
@@ -186,7 +179,8 @@ public class EmployeeRepository implements IEmployeeRepository {
 
 	@Override
 	public Employee updateEmployee(Integer id, Employee updatedEmployee) {
-		String sql = "UPDATE employee SET name = ?, dob = ?, gender = ?, salary = ?, phone = ?, department_id = ? WHERE id = ?";
+		String sql = "UPDATE employee SET name = ?, dob = ?, gender = ?, salary = ?, phone = ?, department_id = ? " +
+				"WHERE id = ?";
 
 		try (Connection conn = BaseRepository.getConnection();
 			 PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
@@ -218,7 +212,7 @@ public class EmployeeRepository implements IEmployeeRepository {
 	public Employee deleteEmployee(Integer id) {
 
 		Employee employeeToDelete = findById(id)
-				.orElseThrow(() -> new RuntimeException("Employee with id not found: " + id));
+				.orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
 
 		String sql = "DELETE FROM employee WHERE id = ?";
 
