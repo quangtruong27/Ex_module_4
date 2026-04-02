@@ -8,11 +8,16 @@ import com.employeemanagement.employee.exception.ErrorCode;
 import com.employeemanagement.employee.model.Employee;
 import com.employeemanagement.employee.service.IEmployeeService;
 import com.employeemanagement.employee.util.JsonResponse;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RestController
 @RequestMapping("/employees")
 public class EmployeeController {
@@ -29,7 +34,7 @@ public class EmployeeController {
 
 	@GetMapping("/{id}")
 	public ResponseEntity<ApiResponse<Employee>> getById(@PathVariable Integer id) {
-		Employee employee = employeeService.findById(id);
+		Employee employee = employeeService.findById(id).orElse(null);
 		if (employee != null) {
 			return JsonResponse.ok(employee);
 		}

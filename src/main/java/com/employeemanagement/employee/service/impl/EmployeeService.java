@@ -10,6 +10,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -22,7 +23,7 @@ public class EmployeeService implements IEmployeeService {
 		return employeeRepository.findAll(request);
 	}
 
-	public Employee findById(Integer id) {
+	public Optional<Employee> findById(Integer id) {
 		return employeeRepository.findById(id);
 	}
 

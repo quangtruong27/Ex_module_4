@@ -6,59 +6,124 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Repository;
 
+import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class DepartmentRepository implements IDepartmentRepository {
-	final List<Department> departments = new ArrayList<>(
-			Arrays.asList(
-					new Department(1, "Quản Lý"),
-					new Department(2, "Nhân Sự"),
-					new Department(3, "Kế Toán"),
-					new Department(4, "Sản Xuất"),
-					new Department(5, "Sale")
-			)
-	);
 
+	@Override
 	public List<Department> findAllDepartments() {
+		List<Department> departments = new ArrayList<>();
+		String sql = "SELECT id, name FROM department";
+
+		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
+				.prepareStatement(sql);
+			 ResultSet resultSet = preparedStatement.executeQuery()) {
+
+			while (resultSet.next()) {
+				Department department = Department.builder()
+						.id(resultSet.getInt("id"))
+						.name(resultSet.getString("name"))
+						.build();
+				departments.add(department);
+			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 		return departments;
 	}
 
+	@Override
 	public Department findDepartmentById(Integer id) {
-		for(Department department : departments) {
-			if (department.getId() == id) {
-				return department;
+		String sql = "SELECT id, name FROM department WHERE id = ?";
+
+		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
+				.prepareStatement(sql)
+		) {
+			preparedStatement.setInt(1, id);
+			ResultSet resultSet = preparedStatement.executeQuery();
+			if (resultSet.next()) {
+					return Department.builder()
+							.id(resultSet.getInt("id"))
+							.name(resultSet.getString("name"))
+							.build();
 			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
 		}
-		return null;
+		return null; // Không tìm thấy trả về null
 	}
 
+	@Override
 	public Department createDepartment(Department department) {
-		department.setId((int)(Math.random() * 100000000));
-		departments.add(department);
+
+		String sql = "INSERT INTO department (name) VALUES (?)";
+
+		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
+				.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
+		) {
+
+			preparedStatement.setString(1, department.getName());
+			preparedStatement.executeUpdate();
+
+			// Lấy ID vừa được tạo ra gán lại cho object
+			try (ResultSet rs = preparedStatement.getGeneratedKeys()) {
+				if (rs.next()) {
+					department.setId(rs.getInt(1));
+				}
+			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 		return department;
 	}
 
+	@Override
 	public Department updateDepartment(Integer id, Department updateDepartment) {
-		for (Department department : departments) {
-			if (department.getId().equals(id)) {
-				department.setName(updateDepartment.getName());
-				return department;
+		String sql = "UPDATE department SET name = ? WHERE id = ?";
+
+		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
+				.prepareStatement(sql)) {
+
+			preparedStatement.setString(1, updateDepartment.getName());
+			preparedStatement.setInt(2, id);
+
+			int rowsAffected = preparedStatement.executeUpdate();
+
+			if (rowsAffected > 0) {
+				updateDepartment.setId(id); // Đảm bảo ID được giữ nguyên
+				return updateDepartment;
 			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
 		}
-		return null;
+		return null; // Không tìm thấy phòng ban để update
 	}
 
+	@Override
 	public Department deleteDepartment(Integer id) {
-		for (Department department : departments) {
-			if (department.getId() == id) {
-				departments.remove(department);
-				return department;
-			}
+		// Moi thông tin phòng ban lên trước khi xóa để return
+		Department departmentToDelete = findDepartmentById(id);
+
+		if (departmentToDelete == null) {
+			return null; // ID không tồn tại
 		}
-		return null;
+
+		String sql = "DELETE FROM department WHERE id = ?";
+
+		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
+				.prepareStatement(sql)) {
+
+			preparedStatement.setInt(1, id);
+			preparedStatement.executeUpdate();
+
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+
+		return departmentToDelete;
 	}
 }
