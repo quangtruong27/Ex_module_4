@@ -3,16 +3,19 @@ package com.employeemanagement.employee.controller;
 import com.employeemanagement.employee.dto.ApiResponse;
 import com.employeemanagement.employee.exception.AppException;
 import com.employeemanagement.employee.exception.ErrorCode;
-import com.employeemanagement.employee.model.Department;
+import com.employeemanagement.employee.entity.Department;
 import com.employeemanagement.employee.service.IDepartmentService;
 import com.employeemanagement.employee.util.JsonResponse;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RestController
 @RequestMapping("/departments")
 public class DepartmentController {

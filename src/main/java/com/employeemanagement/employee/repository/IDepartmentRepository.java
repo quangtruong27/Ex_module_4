@@ -1,6 +1,6 @@
 package com.employeemanagement.employee.repository;
 
-import com.employeemanagement.employee.model.Department;
+import com.employeemanagement.employee.entity.Department;
 
 import java.util.List;
 

@@ -1,13 +1,14 @@
 package com.employeemanagement.employee.repository.impl;
 
-import com.employeemanagement.employee.model.Department;
+import com.employeemanagement.employee.entity.Department;
 import com.employeemanagement.employee.repository.IDepartmentRepository;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -16,114 +17,71 @@ public class DepartmentRepository implements IDepartmentRepository {
 
 	@Override
 	public List<Department> findAllDepartments() {
-		List<Department> departments = new ArrayList<>();
-		String sql = "SELECT id, name FROM department";
-
-		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
-				.prepareStatement(sql);
-			 ResultSet resultSet = preparedStatement.executeQuery()) {
-
-			while (resultSet.next()) {
-				Department department = Department.builder()
-						.id(resultSet.getInt("id"))
-						.name(resultSet.getString("name"))
-						.build();
-				departments.add(department);
-			}
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
+		Session session = ConnectionUtil.sessionFactory.openSession();
+		List<Department> departments = session.createQuery("FROM Department").getResultList();
+		session.close();
 		return departments;
 	}
 
 	@Override
 	public Department findDepartmentById(Integer id) {
-		String sql = "SELECT id, name FROM department WHERE id = ?";
-
-		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
-				.prepareStatement(sql)
-		) {
-			preparedStatement.setInt(1, id);
-			ResultSet resultSet = preparedStatement.executeQuery();
-			if (resultSet.next()) {
-					return Department.builder()
-							.id(resultSet.getInt("id"))
-							.name(resultSet.getString("name"))
-							.build();
-			}
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
-		return null; // Không tìm thấy trả về null
+		Session session = ConnectionUtil.sessionFactory.openSession();
+		Department department = (Department) session.createQuery("FROM Department WHERE id = :id").
+				setParameter("id", id)
+				.getSingleResult();
+		session.close();
+		return department;
 	}
 
 	@Override
 	public Department createDepartment(Department department) {
+		Session session = ConnectionUtil.sessionFactory.openSession();
+		Transaction transaction = session.beginTransaction();
+		session.saveOrUpdate(department);
 
-		String sql = "INSERT INTO department (name) VALUES (?)";
+		transaction.commit();
+		session.close();
 
-		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
-				.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
-		) {
-
-			preparedStatement.setString(1, department.getName());
-			preparedStatement.executeUpdate();
-
-			// Lấy ID vừa được tạo ra gán lại cho object
-			try (ResultSet rs = preparedStatement.getGeneratedKeys()) {
-				if (rs.next()) {
-					department.setId(rs.getInt(1));
-				}
-			}
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
 		return department;
 	}
 
 	@Override
 	public Department updateDepartment(Integer id, Department updateDepartment) {
-		String sql = "UPDATE department SET name = ? WHERE id = ?";
+		Session session = ConnectionUtil.sessionFactory.openSession();
+		Transaction transaction = session.beginTransaction();
 
-		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
-				.prepareStatement(sql)) {
+		// Tìm phòng ban cần sửa
+		Department existingDept = session.get(Department.class, id);
 
-			preparedStatement.setString(1, updateDepartment.getName());
-			preparedStatement.setInt(2, id);
+		// Nếu tìm thấy thì cập nhật tên và lưu lại
+		if (existingDept != null) {
+			existingDept.setName(updateDepartment.getName());
 
-			int rowsAffected = preparedStatement.executeUpdate();
+			session.update(existingDept);
+			transaction.commit();
 
-			if (rowsAffected > 0) {
-				updateDepartment.setId(id); // Đảm bảo ID được giữ nguyên
-				return updateDepartment;
-			}
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
+			session.close();
+			return existingDept;
 		}
-		return null; // Không tìm thấy phòng ban để update
-	}
 
+		session.close();
+		return null; // Không tìm thấy để sửa
+	}
 	@Override
 	public Department deleteDepartment(Integer id) {
-		// Moi thông tin phòng ban lên trước khi xóa để return
-		Department departmentToDelete = findDepartmentById(id);
+		Session session = ConnectionUtil.sessionFactory.openSession();
+		Transaction transaction = session.beginTransaction();
 
-		if (departmentToDelete == null) {
-			return null; // ID không tồn tại
+		Department department = session.get(Department.class, id);
+
+		if(department != null) {
+			session.delete(department);
+			transaction.commit();
+
+			session.close();
+			return department;
 		}
-
-		String sql = "DELETE FROM department WHERE id = ?";
-
-		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
-				.prepareStatement(sql)) {
-
-			preparedStatement.setInt(1, id);
-			preparedStatement.executeUpdate();
-
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
-
-		return departmentToDelete;
+		session.close();
+		return null;
 	}
 }

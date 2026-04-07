@@ -1,6 +1,6 @@
 package com.employeemanagement.employee.service.impl;
 
-import com.employeemanagement.employee.model.Department;
+import com.employeemanagement.employee.entity.Department;
 import com.employeemanagement.employee.repository.IDepartmentRepository;
 import com.employeemanagement.employee.service.IDepartmentService;
 import lombok.AccessLevel;

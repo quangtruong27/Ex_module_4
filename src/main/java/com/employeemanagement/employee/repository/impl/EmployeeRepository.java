@@ -1,19 +1,18 @@
 package com.employeemanagement.employee.repository.impl;
 
 import com.employeemanagement.employee.dto.employee.EmployeeSearchRequest;
-import com.employeemanagement.employee.exception.AppException;
-import com.employeemanagement.employee.exception.ErrorCode;
-import com.employeemanagement.employee.model.Employee;
-import com.employeemanagement.employee.model.Gender;
+import com.employeemanagement.employee.entity.Department;
+import com.employeemanagement.employee.entity.Employee;
 import com.employeemanagement.employee.repository.IEmployeeRepository;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
 
 
 import java.sql.*;
-import java.sql.Date;
-import java.time.LocalDate;
 import java.util.*;
 
 @Repository
@@ -22,210 +21,128 @@ public class EmployeeRepository implements IEmployeeRepository {
 
 	@Override
 	public List<Employee> findAll(EmployeeSearchRequest employeeSearchRequest) {
-		List<Employee> employeeList = new ArrayList<>();
+		Session session = ConnectionUtil.sessionFactory.openSession();
 
-		try {
-			String sql = "SELECT id, name, dob, gender, salary, phone, department_id" + " FROM employee WHERE 1=1";
+		String hql = "FROM Employee e LEFT JOIN FETCH e.department WHERE "
+				+ "(:name IS NULL OR lower(e.name) LIKE CONCAT('%', :name, '%')) " // // Nếu name = null thì bỏ qua, ngược lại tìm LIKE
+				+ " AND (:dobFrom IS NULL OR e.dob >= :dobFrom) "
+				+ " AND (:dobTo IS NULL OR e.dob <= :dobTo) "
+				+ " AND (:gender IS NULL OR e.gender = :gender) "
+				+ " AND (:phone IS NULL OR e.phone LIKE CONCAT('%', :phone, '%')) "
+				+ " AND (:departmentId IS NULL OR e.department.id = :departmentId)";
 
-			List<Object> parameters = new ArrayList<>();
-			if (employeeSearchRequest.getName() != null) {
-				sql += " AND LOWER(name) LIKE ?";
-				parameters.add("%" + employeeSearchRequest.getName().toLowerCase() + "%");
+		if (employeeSearchRequest.getSalaryRange() != null) {
+			hql += " AND ("; // Mo dau dk salary range
+			switch (employeeSearchRequest.getSalaryRange()) {
+				case "lt5":
+					hql += "e.salary < 5000000";
+					break;
+				case "5-10":
+					hql += "e.salary => 5000000 AND e.salary < 10000000";
+					break;
+				case "10-20":
+					hql += "e.salary => 10000000 AND e.salary < 20000000";
+					break;
+				case "gt20":
+					hql += "e.salary > 20000000";
+					break;
 			}
-			if (employeeSearchRequest.getDobFrom() != null) {
-				sql += " AND dob >= ?";
-				parameters.add(employeeSearchRequest.getDobFrom());
-			}
-			if (employeeSearchRequest.getDobTo() != null) {
-				sql += " AND dob <= ?";
-				parameters.add(employeeSearchRequest.getDobTo());
-			}
-			if (employeeSearchRequest.getGender() != null) {
-				sql += " AND gender = ?";
-				parameters.add(employeeSearchRequest.getGender().toString());
-			}
-			if (employeeSearchRequest.getPhone() != null) {
-				sql += " AND phone LIKE ?";
-				parameters.add("%" + employeeSearchRequest.getPhone() + "%");
-			}
-			if (employeeSearchRequest.getDepartmentId() != null) {
-				sql += " AND department_id = ?";
-				parameters.add(employeeSearchRequest.getDepartmentId());
-			}
-			if (employeeSearchRequest.getSalaryRange() != null) {
-				switch (employeeSearchRequest.getSalaryRange()) {
-					case "lt5":
-						sql += " AND salary < 5000000";
-						break;
-					case "5-10":
-						sql += " AND salary >= 5000000 AND salary <= 10000000";
-						break;
-					case "10-20":
-						sql += " AND salary >= 10000000 AND salary <= 20000000";
-						break;
-					case "gt20":
-						sql += "AND salary > 20000000";
-						break;
-				}
-			}
-
-			PreparedStatement preparedStatement = BaseRepository.getConnection()
-					.prepareStatement(sql);
-
-			for (int i = 0; i < parameters.size(); i++) {
-				if (parameters.get(i) instanceof LocalDate) {
-					preparedStatement.setDate(i + 1, Date.valueOf((LocalDate) parameters.get(i)));
-				} else if (parameters.get(i) instanceof Integer) {
-					preparedStatement.setInt(i + 1, (Integer) parameters.get(i));
-				} else {
-					preparedStatement.setObject(i + 1, parameters.get(i));
-				}
-			}
-
-			ResultSet resultSet = preparedStatement.executeQuery();
-
-			while (resultSet.next()) {
-				Employee employee = new Employee(
-						resultSet.getInt("id"),
-						resultSet.getString("name"),
-						resultSet.getDate("dob").toLocalDate(),
-						Gender.valueOf(resultSet.getString("gender")),
-						resultSet.getDouble("salary"),
-						resultSet.getString("phone"),
-						resultSet.getInt("department_id")
-				);
-				employeeList.add(employee);
-			}
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
+			hql += ")"; //close dk salary range
 		}
-		return employeeList;
+		Query<Employee> query = session.createQuery(hql, Employee.class);  // Tạo query từ HQL
+
+		// Gán parameter từ request vào query
+		query.setParameter("name", employeeSearchRequest.getName());
+		query.setParameter("dobFrom", employeeSearchRequest.getDobFrom());
+		query.setParameter("dobTo", employeeSearchRequest.getDobTo());
+		query.setParameter("gender", employeeSearchRequest.getGender());
+		query.setParameter("phone", employeeSearchRequest.getPhone());
+		query.setParameter("departmentId", employeeSearchRequest.getDepartmentId());
+
+		// Thực thi query và trả về list
+		return query.getResultList();
 	}
 
 	@Override
 	public Optional<Employee> findById(Integer id) {
-		Optional<Employee> employeeOptional = Optional.empty();
-		try {
-			String sql = "SELECT id, name, dob, gender, salary, phone, department_id" +
-					" FROM employee WHERE id = ?";
-
-			PreparedStatement preparedStatement = BaseRepository.getConnection()
-					.prepareStatement(sql);
-			preparedStatement.setInt(1, id);
-
-			ResultSet resultSet = preparedStatement.executeQuery();
-
-			if (resultSet.next()) {
-				employeeOptional = Optional.of(Employee.builder()
-						.id(resultSet.getInt("id"))
-						.name(resultSet.getString("name"))
-						.dob(resultSet.getDate("dob").toLocalDate())
-						.gender(Gender.valueOf(resultSet.getString("gender")))
-						.salary(resultSet.getDouble("salary"))
-						.phone(resultSet.getString("phone"))
-						.departmentId(resultSet.getInt("department_id"))
-						.build());
-			}
-		}catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
-		return employeeOptional;
+		Session session = ConnectionUtil.sessionFactory.openSession();
+		Employee employee = (Employee) session.createQuery("FROM Employee WHERE id = :id").
+				setParameter("id", id)
+				.uniqueResult();
+		session.close();
+		return Optional.ofNullable(employee);
 	}
 
 	@Override
 	public Employee createEmployee(Employee employee) {
-		String updateQuery = "UPDATE employee SET name = ?, dob = ?, gender = ?, salary = ?," +
-				" phone = ?, department_id = ? WHERE id = ?";
-		String insertQuery = "INSERT INTO employee (id, name, dob, gender, salary, phone, " +
-				"department_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+		try (Session session = ConnectionUtil.sessionFactory.openSession()) {
+			Transaction transaction = session.beginTransaction();
 
-		try {
-			// Kiểm tra xem Employee đã tồn tại trong DB hay chưa
-			Optional<Employee> existingEmployee = findById(employee.getId());
+			try {
 
-			if (existingEmployee.isPresent()) {
-				// Nếu đã tồn tại, thực hiện cập nhật (UPDATE)
-				try (PreparedStatement preparedStatement = BaseRepository.getConnection()
-						.prepareStatement(updateQuery, Statement.RETURN_GENERATED_KEYS)) {
-					preparedStatement.setString(1, employee.getName());
-					preparedStatement.setDate(2, Date.valueOf(employee.getDob()));
-					preparedStatement.setString(3, employee.getGender().toString());
-					preparedStatement.setDouble(4, employee.getSalary());
-					preparedStatement.setString(5, employee.getPhone());
-					preparedStatement.setInt(6, employee.getDepartmentId());
-					preparedStatement.setString(7, employee.getId().toString()); // Tương tự với các tham số khác
-					preparedStatement.executeUpdate();
+				if (employee.getDepartment() != null && employee.getDepartment().getId() != null) { // Nếu có department id thì lấy department từ DB
+					Department department = session.find(Department.class, employee.getDepartment().getId());
+					employee.setDepartment(department); // gán department đầy đủ cho employy
 				}
-			} else {
 
-				try (PreparedStatement preparedStatement = BaseRepository.getConnection()
-						.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
-					preparedStatement.setString(1, employee.getId().toString());
-					preparedStatement.setString(2, employee.getName());
-					preparedStatement.setDate(3, Date.valueOf(employee.getDob()));
-					preparedStatement.setString(4, employee.getGender().toString());
-					preparedStatement.setDouble(5, employee.getSalary());
-					preparedStatement.setString(6, employee.getPhone());
-					preparedStatement.setInt(7, employee.getDepartmentId()); // Tương tự với các tham số khác
-					preparedStatement.executeUpdate();
+				session.saveOrUpdate(employee); // Lưu hoặc update
+				transaction.commit();
+			} catch (Exception e) {
+				if (transaction != null) {
+					transaction.rollback(); // rollback neu co loi
 				}
+				throw new RuntimeException(e);
 			}
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
 		}
-
 		return employee;
 	}
 
 	@Override
 	public Employee updateEmployee(Integer id, Employee updatedEmployee) {
-		String sql = "UPDATE employee SET name = ?, dob = ?, gender = ?, salary = ?, phone = ?, department_id = ? " +
-				"WHERE id = ?";
+		try (Session session = ConnectionUtil.sessionFactory.openSession()) {
+			Transaction transaction = session.beginTransaction();
 
-		try (Connection conn = BaseRepository.getConnection();
-			 PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
-
-			preparedStatement.setString(1, updatedEmployee.getName());
-			preparedStatement.setDate(2, Date.valueOf(updatedEmployee.getDob()));
-			preparedStatement.setString(3, updatedEmployee.getGender().name());
-			preparedStatement.setDouble(4, updatedEmployee.getSalary());
-			preparedStatement.setString(5, updatedEmployee.getPhone());
-			preparedStatement.setInt(6, updatedEmployee.getDepartmentId());
-			preparedStatement.setInt(7, id); // Điều kiện WHERE id = ?
-
-			int rowsAffected = preparedStatement.executeUpdate();
-
-			if (rowsAffected == 0) {
-				return null; // Không tìm thấy để update
+			Employee existingEmployee = session.get(Employee.class, id); // Tìm nhân viên cũ trong DB
+			if (existingEmployee == null) {
+				return null;
 			}
 
-			updatedEmployee.setId(id); // Đảm bảo trả về object có ID chuẩn
+			//Cập nhật các trường dữ liệu
+			existingEmployee.setName(updatedEmployee.getName());
+			existingEmployee.setDob(updatedEmployee.getDob());
+			existingEmployee.setGender(updatedEmployee.getGender());
+			existingEmployee.setSalary(updatedEmployee.getSalary());
+			existingEmployee.setPhone(updatedEmployee.getPhone());
 
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
+			if (updatedEmployee.getDepartment() != null && updatedEmployee.getDepartment().getId() != null) {
+				Department department = session.get(Department.class, updatedEmployee.getDepartment().getId());
+				existingEmployee.setDepartment(department);
+			}
+
+			// Lưu
+			session.update(existingEmployee);
+			transaction.commit();
+
+			return existingEmployee;
 		}
-
-		return updatedEmployee;
 	}
 
 	@Override
 	public Employee deleteEmployee(Integer id) {
+		Session session = ConnectionUtil.sessionFactory.openSession();
+		Transaction transaction = session.beginTransaction();
 
-		Employee employeeToDelete = findById(id)
-				.orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
+		Employee employee = session.get(Employee.class, id); //Tìm nhân viên xem có tồn tại không
 
-		String sql = "DELETE FROM employee WHERE id = ?";
+		if (employee != null) { // 	Nếu tìm thấy thì tiến hành xóa
 
-		try (PreparedStatement preparedStatement = BaseRepository.getConnection()
-				.prepareStatement(sql)) {
-			preparedStatement.setInt(1, id);
+			session.delete(employee);
+			transaction.commit(); // Xác nhận lưu thay đổi xuống Database
 
-			preparedStatement.executeUpdate();
-
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
+			session.close();
+			return employee;
 		}
-		return  employeeToDelete;
+		session.close();
+		return null;
 	}
-
 }

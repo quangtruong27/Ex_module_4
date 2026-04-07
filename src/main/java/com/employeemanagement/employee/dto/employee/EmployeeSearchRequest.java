@@ -1,6 +1,6 @@
 package com.employeemanagement.employee.dto.employee;
 
-import com.employeemanagement.employee.model.Gender;
+import com.employeemanagement.employee.entity.Gender;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 

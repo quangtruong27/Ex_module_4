@@ -5,7 +5,7 @@ import com.employeemanagement.employee.dto.ApiResponse;
 import com.employeemanagement.employee.dto.employee.EmployeeSearchRequest;
 import com.employeemanagement.employee.exception.AppException;
 import com.employeemanagement.employee.exception.ErrorCode;
-import com.employeemanagement.employee.model.Employee;
+import com.employeemanagement.employee.entity.Employee;
 import com.employeemanagement.employee.service.IEmployeeService;
 import com.employeemanagement.employee.util.JsonResponse;
 import lombok.AccessLevel;

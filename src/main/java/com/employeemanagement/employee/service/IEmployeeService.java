@@ -1,7 +1,7 @@
 package com.employeemanagement.employee.service;
 
 import com.employeemanagement.employee.dto.employee.EmployeeSearchRequest;
-import com.employeemanagement.employee.model.Employee;
+import com.employeemanagement.employee.entity.Employee;
 
 import java.util.List;
 import java.util.Optional;

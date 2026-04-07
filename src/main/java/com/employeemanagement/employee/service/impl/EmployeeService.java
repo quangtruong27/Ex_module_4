@@ -1,7 +1,7 @@
 package com.employeemanagement.employee.service.impl;
 
 import com.employeemanagement.employee.dto.employee.EmployeeSearchRequest;
-import com.employeemanagement.employee.model.Employee;
+import com.employeemanagement.employee.entity.Employee;
 import com.employeemanagement.employee.repository.IEmployeeRepository;
 import com.employeemanagement.employee.service.IEmployeeService;
 import lombok.AccessLevel;
