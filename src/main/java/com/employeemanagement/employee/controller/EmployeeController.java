@@ -41,34 +41,29 @@ public class EmployeeController {
 
 	@PostMapping
 	public ResponseEntity<ApiResponse<Employee>> createEmployee(@RequestBody Employee employee) {
-		// Bạn kiểm tra lại tên hàm trong IEmployeeService nhé, nếu là save() thì đổi lại
 		Employee savedEmployee = employeeService.createEmployee(employee);
 		return JsonResponse.create(savedEmployee);
 	}
 
 	@PutMapping("/{id}")
 	public ResponseEntity<ApiResponse<Employee>> updateEmployee(@PathVariable Integer id, @RequestBody Employee updatedEmployee) {
-		// 1. Kiểm tra xem nhân viên có tồn tại không trước khi update
 		Employee existingEmployee = employeeService.findById(id).orElse(null);
 		if(existingEmployee == null){
 			throw new AppException(ErrorCode.EMPLOYEE_NOT_FOUND);
 		}
 
-		// 2. Thực hiện update
 		Employee employee = employeeService.updateEmployee(id, updatedEmployee);
 		return JsonResponse.ok(employee);
 	}
 
 	@DeleteMapping("/{id}")
 	public ResponseEntity<ApiResponse<String>> deleteEmployee(@PathVariable Integer id) {
-		// 1. Kiểm tra xem nhân viên có tồn tại không trước khi xóa
 		Employee existingEmployee = employeeService.findById(id).orElse(null);
 		if(existingEmployee == null){
 			throw new AppException(ErrorCode.EMPLOYEE_NOT_FOUND);
 		}
 
-		// 2. Thực hiện xóa (Hàm này giờ chạy trả về void)
-		employeeService.deleteEmployee(id);
+			employeeService.deleteEmployee(id);
 		return JsonResponse.ok("Employee deleted successfully!");
 	}
 }
