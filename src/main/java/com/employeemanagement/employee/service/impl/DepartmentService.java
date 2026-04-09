@@ -14,25 +14,32 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class DepartmentService implements IDepartmentService {
+
 	IDepartmentRepository departmentRepository;
 
+	@Override
 	public List<Department> findAllDepartments() {
-		return departmentRepository.findAllDepartments();
+		return departmentRepository.findAll();
 	}
 
+	@Override
 	public Department findDepartmentById(Integer id) {
-		return departmentRepository.findDepartmentById(id);
+		return departmentRepository.findById(id).orElse(null);
 	}
 
+	@Override
 	public Department createDepartment(Department department) {
-		return departmentRepository.createDepartment(department);
+		return departmentRepository.save(department);
 	}
 
+	@Override
 	public Department updateDepartment(Integer id, Department updatedepartment) {
-		return departmentRepository.updateDepartment(id, updatedepartment);
+		updatedepartment.setId(id);
+		return departmentRepository.save(updatedepartment);
 	}
 
-	public Department deleteDepartment(Integer id) {
-		return departmentRepository.deleteDepartment(id);
+	@Override
+	public void deleteDepartment(Integer id) {
+		departmentRepository.deleteById(id);
 	}
 }

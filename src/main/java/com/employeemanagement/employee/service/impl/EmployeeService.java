@@ -16,26 +16,35 @@ import java.util.Optional;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class EmployeeService implements IEmployeeService {
+
 	IEmployeeRepository employeeRepository;
 
-
-	public List<Employee> findAll(EmployeeSearchRequest request) {
-		return employeeRepository.findAll(request);
+	@Override
+	public List<Employee> findByAttributes(EmployeeSearchRequest request) {
+		return employeeRepository.findByAttributes(request);
 	}
 
+	@Override
 	public Optional<Employee> findById(Integer id) {
 		return employeeRepository.findById(id);
 	}
 
+	@Override
 	public Employee createEmployee(Employee employee) {
-		return employeeRepository.createEmployee(employee);
+		// Sử dụng hàm save() thần thánh của Spring Data JPA
+		return employeeRepository.save(employee);
 	}
 
-	public Employee updateEmployee(Integer id ,Employee updateEmployee) {
-		return employeeRepository.updateEmployee(id, updateEmployee);
+	@Override
+	public Employee updateEmployee(Integer id, Employee updatedEmployee) {
+		// Gán ID vào để JPA biết đây là "Cập nhật" chứ không phải "Thêm mới"
+		updatedEmployee.setId(id);
+		return employeeRepository.save(updatedEmployee);
 	}
 
-	public Employee deleteEmployee(Integer id) {
-		return employeeRepository.deleteEmployee(id);
+	@Override
+	public void deleteEmployee(Integer id) {
+		// Sử dụng hàm deleteById() của JPA và không return gì cả (void)
+		employeeRepository.deleteById(id);
 	}
 }

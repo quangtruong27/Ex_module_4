@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IEmployeeService {
-	List<Employee> findAll(EmployeeSearchRequest request);
+	List<Employee> findByAttributes(EmployeeSearchRequest request);
 
 	Optional<Employee> findById(Integer id);
 
@@ -15,5 +15,5 @@ public interface IEmployeeService {
 
 	Employee updateEmployee(Integer id, Employee updatedEmployee);
 
-	Employee deleteEmployee(Integer id);
+	void deleteEmployee(Integer id);
 }
