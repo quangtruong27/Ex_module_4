@@ -1,6 +1,7 @@
 package com.employeemanagement.employee.controller;
 
 import com.employeemanagement.employee.dto.ApiResponse;
+import com.employeemanagement.employee.dto.PageResponse;
 import com.employeemanagement.employee.dto.employee.EmployeeSearchRequest;
 import com.employeemanagement.employee.exception.AppException;
 import com.employeemanagement.employee.exception.ErrorCode;
@@ -10,8 +11,12 @@ import com.employeemanagement.employee.util.JsonResponse;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -24,9 +29,13 @@ public class EmployeeController {
 	IEmployeeService employeeService;
 
 	@GetMapping
-	public ResponseEntity<ApiResponse<List<Employee>>> findByAttributes(EmployeeSearchRequest request) {
-		List<Employee> employees = employeeService.findByAttributes(request);
-		return JsonResponse.ok(employees);
+	public ResponseEntity<ApiResponse<PageResponse<Employee>>> findByAttributes(EmployeeSearchRequest request,
+							@PageableDefault(size = 5, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+		return ResponseEntity.ok(
+				ApiResponse.<PageResponse<Employee>>builder()
+				.data(new PageResponse<>(employeeService.findByAttributes(request, pageable)))
+				.build()
+		);
 	}
 
 	@GetMapping("/{id}")
@@ -65,5 +74,26 @@ public class EmployeeController {
 
 			employeeService.deleteEmployee(id);
 		return JsonResponse.ok("Employee deleted successfully!");
+	}
+
+	//cloudinary
+//	@PostMapping("/{id}/avatar")
+//	public ResponseEntity<ApiResponse<Employee>> uploadImage(@PathVariable("id") Integer id,
+//															 @RequestParam("file") MultipartFile file) {
+//		return JsonResponse.ok(employeeService.updateAvatarCloud(id, file));
+//	}
+
+	//BLOB
+//	@PostMapping("/{id}/avatar")
+//	public ResponseEntity<ApiResponse<Employee>> uploadAvatar(@PathVariable("id") Integer id,
+//															  @RequestParam("file") MultipartFile file) {
+//		return JsonResponse.ok(employeeService.updateAvatar(id, file));
+//	}
+
+	// Local Server
+	@PostMapping("/{id}/avatar")
+	public ResponseEntity<?> uploadAvatar(@PathVariable("id") Integer id,
+										  @RequestParam("file") MultipartFile file) {
+		return JsonResponse.ok(employeeService.updateAvatarLS(id, file));
 	}
 }
